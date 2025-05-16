@@ -24,6 +24,7 @@ from ...modeling_rope_utils import ROPE_INIT_FUNCTIONS
 from ...modeling_utils import ALL_ATTENTION_FUNCTIONS
 from ...processing_utils import Unpack
 from ...utils import logging
+from ...mindspore_adapter import dtype_to_min
 
 from transformers.models.phi.configuration_phi import PhiConfig
 from mindspore.common.initializer import Normal, Zero, initializer
@@ -504,7 +505,7 @@ class PhiModel(PhiPreTrainedModel):
         else:
             target_length = (
                 attention_mask.shape[-1]
-                if isinstance(attention_mask, mindspore.tensor)
+                if isinstance(attention_mask, mindspore.Tensor)
                 else past_seen_tokens + sequence_length + 1
             )
 
@@ -525,7 +526,7 @@ class PhiModel(PhiPreTrainedModel):
         ):
             # Attend to all tokens in fully masked rows in the causal_mask, for example the relevant first rows when
             # using left padding. This is required by F.scaled_dot_product_attention memory-efficient attention path.
-            min_dtype = mint.finfo(dtype).min
+            min_dtype = dtype_to_min(dtype)
             causal_mask = AttentionMaskConverter._unmask_unattended(causal_mask, min_dtype)
 
         return causal_mask
@@ -564,7 +565,7 @@ class PhiModel(PhiPreTrainedModel):
             # In this case we assume that the mask comes already in inverted form and requires no inversion or slicing.
             causal_mask = attention_mask
         else:
-            min_dtype = mint.finfo(dtype).min
+            min_dtype = dtype_to_min(dtype)
             causal_mask = mint.full(
                 (sequence_length, target_length), fill_value=min_dtype, dtype=dtype)
             if sequence_length != 1:
@@ -648,6 +649,7 @@ class PhiForCausalLM(PhiPreTrainedModel, GenerationMixin):
         Example:
 
         ```python
+        >>> import mindspore
         >>> from transformers import AutoTokenizer
         >>> from mindway.transformers import PhiForCausalLM
 
@@ -655,10 +657,10 @@ class PhiForCausalLM(PhiPreTrainedModel, GenerationMixin):
         >>> tokenizer = AutoTokenizer.from_pretrained("microsoft/phi-2")
 
         >>> prompt = "Hey, are you conscious? Can you talk to me?"
-        >>> inputs = tokenizer(prompt, return_tensors="pt")
+        >>> inputs = tokenizer(prompt, return_tensors="np")
 
         >>> # Generate
-        >>> generate_ids = model.generate(inputs.input_ids, max_length=30)
+        >>> generate_ids = model.generate(mindspore.tensor(inputs.input_ids), max_length=30)
         >>> tokenizer.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
         "Hey, are you conscious? Can you talk to me?\nI'm not conscious, but I can talk to you."
         ```"""
