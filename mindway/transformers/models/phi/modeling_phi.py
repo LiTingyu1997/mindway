@@ -25,7 +25,7 @@ from ...modeling_utils import ALL_ATTENTION_FUNCTIONS
 from ...processing_utils import Unpack
 from ...utils import logging
 
-from transformers.configuration_phi import PhiConfig
+from transformers.models.phi.configuration_phi import PhiConfig
 from mindspore.common.initializer import Normal, Zero, initializer
 
 
@@ -129,10 +129,10 @@ class PhiAttention(nn.Cell):
         self.rotary_ndims = int(self.head_dim * config.partial_rotary_factor)
         self.qk_layernorm = config.qk_layernorm
         if self.qk_layernorm:
-            self.q_layernorm = nn.LayerNorm(
+            self.q_layernorm = mint.nn.LayerNorm(
                 config.hidden_size // config.num_attention_heads, eps=config.layer_norm_eps, elementwise_affine=True
             )
-            self.k_layernorm = nn.LayerNorm(
+            self.k_layernorm = mint.nn.LayerNorm(
                 config.hidden_size // config.num_attention_heads, eps=config.layer_norm_eps, elementwise_affine=True
             )
 
@@ -224,7 +224,7 @@ class PhiDecoderLayer(nn.Cell):
         super().__init__()
         self.self_attn = PhiAttention(config, layer_idx=layer_idx)
         self.mlp = PhiMLP(config)
-        self.input_layernorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
+        self.input_layernorm = mint.nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         self.resid_dropout = mint.nn.Dropout(config.resid_pdrop)
 
     def construct(
@@ -351,7 +351,7 @@ class PhiModel(PhiPreTrainedModel):
         self.rotary_emb = PhiRotaryEmbedding(config=config)
         self.gradient_checkpointing = False
         self.embed_dropout = mint.nn.Dropout(config.embd_pdrop)
-        self.final_layernorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
+        self.final_layernorm = mint.nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -650,8 +650,8 @@ class PhiForCausalLM(PhiPreTrainedModel, GenerationMixin):
         ```python
         >>> from transformers import AutoTokenizer, PhiForCausalLM
 
-        >>> model = PhiForCausalLM.from_pretrained("meta-phi/Phi-2-7b-hf")
-        >>> tokenizer = AutoTokenizer.from_pretrained("meta-phi/Phi-2-7b-hf")
+        >>> model = PhiForCausalLM.from_pretrained("microsoft/phi-2")
+        >>> tokenizer = AutoTokenizer.from_pretrained("microsoft/phi-2")
 
         >>> prompt = "Hey, are you conscious? Can you talk to me?"
         >>> inputs = tokenizer(prompt, return_tensors="pt")
