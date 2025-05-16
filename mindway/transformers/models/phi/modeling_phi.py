@@ -282,7 +282,7 @@ class PhiRotaryEmbedding(nn.Cell):
         self.rope_init_fn = ROPE_INIT_FUNCTIONS[self.rope_type]
 
         inv_freq, self.attention_scaling = self.rope_init_fn(self.config)
-        self.register_buffer("inv_freq", inv_freq, persistent=False)
+        self.inv_freq = inv_freq
         self.original_inv_freq = self.inv_freq
 
     def construct(self, x, position_ids):
@@ -648,7 +648,8 @@ class PhiForCausalLM(PhiPreTrainedModel, GenerationMixin):
         Example:
 
         ```python
-        >>> from transformers import AutoTokenizer, PhiForCausalLM
+        >>> from transformers import AutoTokenizer
+        >>> from mindway.transformers import PhiForCausalLM
 
         >>> model = PhiForCausalLM.from_pretrained("microsoft/phi-2")
         >>> tokenizer = AutoTokenizer.from_pretrained("microsoft/phi-2")
